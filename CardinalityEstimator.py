@@ -104,7 +104,8 @@ if __name__ == "__main__":
     else:
         capture = pyshark.FileCapture(input_file=args.file, display_filter="quic")
 
-    loop_thread = threading.Thread(target=run_loop, daemon=True)  # This is set to terminate the thread when the program exits # TODO: does this need capture as an argument?
+    # The daemon flag is set to terminate the thread when the program exits
+    loop_thread = threading.Thread(target=run_loop, daemon=True)
     loop_thread.start()
 
     while True:
@@ -114,7 +115,7 @@ if __name__ == "__main__":
         elif user_input == "status":
             LFPMs.print_status()
         elif user_input == "" or user_input == "estimate" or user_input == "cardinality":
-            estimation = LFPMs.estimate_cardinality(time=time.time(), duration=None, m=args.memory) # TODO: check that time is ok here
+            estimation = LFPMs.estimate_cardinality(time=time.time(), duration=None, m=args.memory)
             print("Cardinality estimation is:", estimation)
         else:
             try:
@@ -123,7 +124,7 @@ if __name__ == "__main__":
                 print("Please insert a valid float number or exit/quit to terminate the program")
                 continue
 
-            estimation = LFPMs.estimate_cardinality(time=time.time(), duration=input_duration, m=args.memory)  # TODO: check that time is ok here
+            estimation = LFPMs.estimate_cardinality(time=time.time(), duration=input_duration, m=args.memory)
             print("Cardinality estimation is:", estimation)
 
 

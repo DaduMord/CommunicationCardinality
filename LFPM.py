@@ -62,17 +62,6 @@ class LFPMList:  # Thread safe list of LFPMs
         self._LFPMs[index].add_packet(packet=packet)
         self._LFPMs_lock.release()
 
-    # TODO: can this be removed? only calculate cardinality with list
-    # def extract_highest_leftmost_for_index(self, index: int, time: float, duration: float) -> Optional[int]:
-    #     if index >= self._size:
-    #         raise IndexError("LFPMs list received illegal index")
-    #
-    #     self._LFPMs_lock.acquire()
-    #     res = self._LFPMs[index].extract_highest_leftmost(time=time, duration=duration)
-    #     self._LFPMs_lock.release()
-    #
-    #     return res
-
     def estimate_cardinality(self, time: float, duration: Optional[float], m: int) -> float:
         self._LFPMs_lock.acquire()
         l_duration = 9999999999 # we are using 9999999999 as a dummy time duration. This means this script will only consider packets in the last 2286 years.
@@ -81,7 +70,7 @@ class LFPMList:  # Thread safe list of LFPMs
 
         temp = 0.0
         for lfpm in self._LFPMs:
-            rightmost = lfpm.extract_highest_leftmost(time=time, duration=l_duration)  # TODO: check that time is ok here
+            rightmost = lfpm.extract_highest_leftmost(time=time, duration=l_duration)
             if rightmost is not None:
                 temp += 2 ** (-1 * rightmost)
 
@@ -104,7 +93,7 @@ class LFPMList:  # Thread safe list of LFPMs
 def alpha_m(m: int) -> float:  # Estimate alpha_m according to suggestion on the HyperLogLog article by
     # Flajolet, Philippe; Fusy, Éric; Gandouet, Olivier; Meunier, Frédéric (2007).
     if m < 16:
-        # TODO: check this and maybe move it to the start of the main
+        # TODO: check this and maybe move it to the start of the main. Consult Eran
         raise Exception("This algorithm does not work well with m < 16. Consider using a different algorithm.")
     if m == 16:
         return 0.673
