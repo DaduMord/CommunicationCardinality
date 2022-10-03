@@ -11,6 +11,9 @@ class PacketInformation:  # Packet timestamp and leftmost bit
         self.time = time
         self.leftmost = leftmost
 
+    def __str__(self):
+        return "(" + str(self.leftmost) + ", " + str(self.time) + ")"
+
 
 class LFPM:  # List of Future Possible Maxima as described in the article by Chabchoub and Hebrail
     _packets: list[PacketInformation]
@@ -26,11 +29,16 @@ class LFPM:  # List of Future Possible Maxima as described in the article by Cha
         self._packets.append(packet)
 
     def extract_highest_leftmost(self, time: float, duration: float) -> Optional[int]:
-        # TODO: fix if list is empty
-        filtered = list(filter(lambda info: info.time >= (time - duration), self._packets))
+        filtered = list(filter(lambda info: float(info.time) >= (time - duration), self._packets))
         if len(filtered) == 0:
             return None
         return max(filtered, key=lambda info: info.leftmost).leftmost
+
+    def print_status(self) -> None:
+        print(len(self._packets), "packets:")
+        for packet in self._packets:
+            print(str(packet), end='')
+        print()
 
 
 class LFPMList:  # Thread safe list of LFPMs
@@ -65,12 +73,15 @@ class LFPMList:  # Thread safe list of LFPMs
     #
     #     return res
 
-    def estimate_cardinality(self, time: float, duration: float, m: int) -> float:
+    def estimate_cardinality(self, time: float, duration: Optional[float], m: int) -> float:
         self._LFPMs_lock.acquire()
+        l_duration = 9999999999 # we are using 9999999999 as a dummy time duration. This means this script will only consider packets in the last 2286 years.
+        if duration is not None:
+            l_duration = duration
 
-        temp = 0
-        for index in range(self._size):
-            rightmost = self._LFPMs[index].extract_highest_leftmost(time=time, duration=duration)  # TODO: check that time is ok here
+        temp = 0.0
+        for lfpm in self._LFPMs:
+            rightmost = lfpm.extract_highest_leftmost(time=time, duration=l_duration)  # TODO: check that time is ok here
             if rightmost is not None:
                 temp += 2 ** (-1 * rightmost)
 
@@ -81,6 +92,13 @@ class LFPMList:  # Thread safe list of LFPMs
 
         self._LFPMs_lock.release()
         return alpha_m(m) * m * m * Z
+
+    def print_status(self) -> None:
+        self._LFPMs_lock.acquire()
+        for i, lfpm in enumerate(self._LFPMs):
+            print(str(i) + ": ", end='')
+            lfpm.print_status()
+        self._LFPMs_lock.release()
 
 
 def alpha_m(m: int) -> float:  # Estimate alpha_m according to suggestion on the HyperLogLog article by
