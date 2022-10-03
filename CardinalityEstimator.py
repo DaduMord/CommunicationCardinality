@@ -82,7 +82,7 @@ def process_packet(timestamp: float, quic_layer) -> None:
 
 
 def run_loop() -> None:
-    for packet in capture.sniff_continuously():
+    for packet in capture:  # TODO: sniff_continuously?
         process_packet(packet.sniff_timestamp, packet["quic"])
 
 
@@ -97,21 +97,25 @@ if __name__ == "__main__":
         raise Exception("Number of buckets is too large. You are using **WAY** too much memory")
 
     alpha_m = alpha_m(args.memory)
-    LFPMs = LFPMList(b)
+    LFPMs = LFPMList(args.memory)
 
     if args.file is None:
         capture = pyshark.LiveCapture(display_filter="quic")
     else:
         capture = pyshark.FileCapture(input_file=args.file, display_filter="quic")
 
-    loop_thread = threading.Thread(target=run_loop)  # TODO: does this need capture as an argument?
-    loop_thread.daemon = True  # This is set to terminate the thread when the program exits
+    loop_thread = threading.Thread(target=run_loop, daemon=True)  # This is set to terminate the thread when the program exits # TODO: does this need capture as an argument?
     loop_thread.start()
 
     while True:
         user_input = input()
         if user_input == "exit" or user_input == "quit" or user_input == "exit/quit":
             sys.exit()
+        elif user_input == "status":
+            LFPMs.print_status()
+        elif user_input == "" or user_input == "estimate" or user_input == "cardinality":
+            estimation = LFPMs.estimate_cardinality(time=time.time(), duration=None, m=args.memory) # TODO: check that time is ok here
+            print("Cardinality estimation is:", estimation)
         else:
             try:
                 input_duration = float(user_input)
