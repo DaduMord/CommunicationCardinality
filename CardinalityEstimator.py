@@ -21,8 +21,9 @@ parser = argparse.ArgumentParser(description="A program to estimate QUIC connect
 parser.add_argument("-m",
                     "--memory",
                     type=int,
-                    default=1024,
-                    help="amount of buckets in memory to use. this number should be a power of 2.")
+                    default=64,
+                    help="amount of buckets in memory to use. this number should be a power of 2. \
+                         defaults to 64.")
 
 parser.add_argument("-v",
                     "--verify",
@@ -80,10 +81,18 @@ def process_packet(timestamp: float, quic_layer) -> None:
     information = PacketInformation(timestamp, leftmost)
     LFPMs.add_packet_for_index(int(j, 2), information)
 
+    if args.verify:
+        verify_set.add(dcid)
+
 
 def run_loop() -> None:
-    for packet in capture:  # TODO: sniff_continuously?
-        process_packet(packet.sniff_timestamp, packet["quic"])
+    if args.file is None: # TODO: check this is working
+        for packet in capture.sniff_continuously():
+            process_packet(packet.sniff_timestamp, packet["quic"])
+    else:
+        for packet in capture:  # TODO: sniff_continuously?
+            process_packet(packet.sniff_timestamp, packet["quic"])
+
 
 
 if __name__ == "__main__":
@@ -108,6 +117,9 @@ if __name__ == "__main__":
     loop_thread = threading.Thread(target=run_loop, daemon=True)
     loop_thread.start()
 
+    if args.verify:
+        verify_set = set()
+
     while True:
         user_input = input()
         if user_input == "exit" or user_input == "quit" or user_input == "exit/quit":
@@ -117,6 +129,8 @@ if __name__ == "__main__":
         elif user_input == "" or user_input == "estimate" or user_input == "cardinality":
             estimation = LFPMs.estimate_cardinality(time=time.time(), duration=None, m=args.memory)
             print("Cardinality estimation is:", estimation)
+            if args.verify:
+                print("Actual cardinality is:", len(verify_set))
         else:
             try:
                 input_duration = float(user_input)
