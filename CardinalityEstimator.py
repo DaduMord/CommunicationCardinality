@@ -143,7 +143,7 @@ def process_packet(timestamp: float, quic_layer) -> None:
 
 
 def run_loop() -> None:
-    if args.file is None:  # TODO: check this is working
+    if args.file is None:  # TODO: Fix logging problem. Switch to processes?
         for packet in capture.sniff_continuously():
             process_packet(packet.sniff_timestamp, packet["quic"])
     else:
@@ -194,7 +194,7 @@ if __name__ == "__main__":
         capture = pyshark.FileCapture(input_file=args.file, display_filter="quic")
 
     log_file = open(args.log, mode="a")
-    print_and_log("\nStarting estimator on time: " + start_time + "\n\n")
+    print_and_log("\nStarting estimator on time: " + start_time + "\n")
     # event_log_file = open("." + dir_sign + "logs" + dir_sign + "event_log.txt", mode="a")
 
     # The daemon flag is set to terminate the thread when the program exits
@@ -208,6 +208,7 @@ if __name__ == "__main__":
         + "\t" + (("Capturing from file: " + args.file + "\n\tPlease wait for the file to complete reading before exiting (for logging purposes)\n"
                    ) if args.file is not None else ("Live Capture (No Capture File)\n")) \
         + "\t" + "Log File: " + args.log + "\n" \
+        + ("\t" + "Warning: there is currently a problem with logging from Live Capture\n" if not args.file else "") \
         + "\t" + ("Verifying the real cardinality (warning: this increases processing times)\n" if args.verify else "") \
         + "\n" \
         + "The estimator is running in the background and it takes your input for instructions.\n" \
