@@ -40,6 +40,12 @@ class LFPM:  # List of Future Possible Maxima as described in the article by Cha
             print(str(packet), end='')
         print()
 
+    def status(self) -> str:
+        res = str(len(self._packets)) + " packets:"
+        for packet in self._packets:
+            res += str(packet)
+        return res
+
 
 class LFPMList:  # Thread safe list of LFPMs
     _size: int
@@ -62,7 +68,9 @@ class LFPMList:  # Thread safe list of LFPMs
         self._LFPMs[index].add_packet(packet=packet)
         self._LFPMs_lock.release()
 
-    def estimate_cardinality(self, time: float, duration: Optional[float], m: int) -> float:
+    def estimate_cardinality(self, time: float, duration: Optional[float], m: int) -> int:
+        # TODO: apply low-range correction according to hyperloglog article
+        # (HyperLogLog: the analysis of a near-optimal cardinality estimation algorithm)
         self._LFPMs_lock.acquire()
         l_duration = 9999999999 # we are using 9999999999 as a dummy time duration. This means this script will only consider packets in the last 2286 years.
         if duration is not None:
@@ -74,32 +82,44 @@ class LFPMList:  # Thread safe list of LFPMs
             if rightmost is not None:
                 temp += 2 ** (-1 * rightmost)
 
+        self._LFPMs_lock.release()
+
         if temp == 0.0:
-            return 0.0
+            return 0
 
         Z = temp ** (-1)
-
-        self._LFPMs_lock.release()
-        return alpha_m(m) * m * m * Z
+        return round(alpha_m(m) * m * m * Z)
 
     def print_status(self) -> None:
         self._LFPMs_lock.acquire()
         for i, lfpm in enumerate(self._LFPMs):
             print(str(i) + ": ", end='')
-            lfpm.print_status()
+            print(lfpm.status())
         self._LFPMs_lock.release()
+
+    def status(self) -> str:
+        self._LFPMs_lock.acquire()
+        res = ""
+        for i, lfpm in enumerate(self._LFPMs):
+            res += str(i) + ": " + lfpm.status() + "\n"
+        self._LFPMs_lock.release()
+        return res
 
 
 def alpha_m(m: int) -> float:  # Estimate alpha_m according to suggestion on the HyperLogLog article by
     # Flajolet, Philippe; Fusy, Éric; Gandouet, Olivier; Meunier, Frédéric (2007).
-    if m < 16:
-        # TODO: check this and maybe move it to the start of the main. Consult Eran
-        raise Exception("This algorithm does not work well with m < 16. Consider using a different algorithm.")
+
+    # if m == 2:
+    #     return 0.531
+    # elif m == 4:
+    #     return 0.532
+    # elif m == 8:
+    #     return 0.626
     if m == 16:
         return 0.673
-    if m == 32:
+    elif m == 32:
         return 0.697
-    if m == 64:
+    elif m == 64:
         return 0.709
     else:
         return 0.7213 / (1 + (1.079 / m))
