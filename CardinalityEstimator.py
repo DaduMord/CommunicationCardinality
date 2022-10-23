@@ -96,12 +96,11 @@ def is_power_of_two(n: int) -> bool:
 def assert_m_validity(m: int) -> None:
     if not is_power_of_two(args.memory):
         raise AttributeError("Please enter a number that is a power of 2 for m")
-    # TODO: should raise exception here if m is too low? Consult Eran
     if m < 16:
         raise AttributeError("Please enter a larger number for m. it should be 16 or larger.")
 
 
-def get_leftmost_1_position(binary_str: str) -> int:  # TODO: start count at 0 or 1? consult Eran
+def get_leftmost_1_position(binary_str: str) -> int:
     leftmost = 0
     for char in binary_str:
         if char == "1":
@@ -173,7 +172,7 @@ def print_and_log(*values) -> None:
     log_file.write(str_to_write + "\n")
 
 
-# TODO: documentation, readme
+# TODO: readme
 
 
 if __name__ == "__main__":
