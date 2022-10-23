@@ -170,8 +170,8 @@ def small_range_warning(estimation):
 
 
 if __name__ == "__main__":
-    # file flag: -f ".\100 QUIC Connections.pcapng"
     # TODO: delete this
+    # file flag: -f ".\100 QUIC Connections.pcapng"
     args = parser.parse_args()
 
     check_m_validity(args.memory)
