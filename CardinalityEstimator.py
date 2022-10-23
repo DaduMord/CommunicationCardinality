@@ -85,6 +85,11 @@ parser.add_argument("-l",
                     help="Path to log file in which you would like to save your output. \
                          Defaults to <current_folder>\\logs\\log.txt")
 
+parser.add_argument("-c",
+                    "--src",
+                    action="store_true",
+                    help="Set this to enable Small Range Correction with Linear Counting")
+
 
 def is_power_of_two(n: int) -> bool:
     return (n & (n - 1) == 0) and n != 0
@@ -163,10 +168,7 @@ def print_and_log(*values) -> None:
     log_file.write(str_to_write + "\n")
 
 
-def small_range_warning(estimation):
-    # TODO: make estimate_cardinality actually apply the small range correction and delete this
-    if estimation <= 5*args.memory/2 and estimation != 0:
-        print_and_log("Warning: the estimation is too low to be accurate according to HyperLogLog article")
+# TODO: small range correction, documentation, readme
 
 
 if __name__ == "__main__":
@@ -234,9 +236,11 @@ if __name__ == "__main__":
             log_file.write(LFPMs.status())
 
         elif user_input == "" or user_input == "estimate" or user_input == "cardinality":
-            estimation = LFPMs.estimate_cardinality(time=curr_time, duration=None, m=args.memory)
+            src_used = [False]
+            estimation = LFPMs.estimate_cardinality(time=curr_time, duration=None, m=args.memory, use_src=args.src, src_used=src_used)
             print_and_log("Cardinality estimation is:", estimation)
-            small_range_warning(estimation)
+            if src_used[0]:
+                print_and_log("\t(small range correction applied)")
             if args.verify:
                 print_and_log("Actual cardinality is:", verify_set.get_len()//2)
 
@@ -248,9 +252,11 @@ if __name__ == "__main__":
                 log_file.write("Illegal input inserted: " + user_input + '\n')
                 continue
 
-            estimation = LFPMs.estimate_cardinality(time=curr_time, duration=input_duration, m=args.memory)
+            src_used = [False]
+            estimation = LFPMs.estimate_cardinality(time=curr_time, duration=input_duration, m=args.memory, use_src=args.src, src_used=src_used)
             print_and_log("Current time is:", time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(curr_time)))
             print_and_log("\tand the cardinality estimation for duration", input_duration, "is:", estimation)
-            small_range_warning(estimation)
+            if src_used[0]:
+                print_and_log("\t(small range correction applied)")
             if args.verify:
                 print_and_log("\tThere is currently no support for a cardinality verification with specified duration")

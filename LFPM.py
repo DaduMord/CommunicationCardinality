@@ -1,4 +1,4 @@
-
+import math
 import threading
 from typing import Optional
 
@@ -68,11 +68,19 @@ class LFPMList:  # Thread safe list of LFPMs
         self._LFPMs[index].add_packet(packet=packet)
         self._LFPMs_lock.release()
 
-    def estimate_cardinality(self, time: float, duration: Optional[float], m: int) -> int:
+    def small_range_correction(self, E: float, m: int) -> float:
+        # Apply Linear Counting
+        V = sum(lfpm.is_empty() for lfpm in self._LFPMs)
+        if V == 0:
+            return E
+        else:
+            return m*math.log2(m/V)
+
+    def estimate_cardinality(self, time: float, duration: Optional[float], m: int, use_src: bool, src_used: [bool]) -> int:
         # TODO: apply low-range correction according to hyperloglog article
         # (HyperLogLog: the analysis of a near-optimal cardinality estimation algorithm)
         self._LFPMs_lock.acquire()
-        l_duration = 9999999999 # we are using 9999999999 as a dummy time duration. This means this script will only consider packets in the last 2286 years.
+        l_duration = 9999999999  # we are using 9999999999 as a dummy time duration. This means this script will only consider packets in the last 2286 years.
         if duration is not None:
             l_duration = duration
 
@@ -88,7 +96,12 @@ class LFPMList:  # Thread safe list of LFPMs
             return 0
 
         Z = temp ** (-1)
-        return round(alpha_m(m) * m * m * Z)
+        E = alpha_m(m) * m * m * Z
+
+        if E <= (5*m)/2 and use_src:
+            src_used[0] = True
+            return round(self.small_range_correction(E, m))
+        return round(E)
 
     def print_status(self) -> None:
         self._LFPMs_lock.acquire()
