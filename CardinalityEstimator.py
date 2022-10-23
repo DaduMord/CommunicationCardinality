@@ -7,11 +7,8 @@
 
 import argparse
 import os.path
-import sys
 import platform
-import threading
 import time
-from typing import Tuple
 from math import log2
 from hashlib import sha256
 import pyshark
@@ -27,6 +24,7 @@ else:
 
 
 def get_default_log() -> str:
+    # The default log is set to <current folder>\logs\log.txt
     return "." + dir_sign + "logs" + dir_sign + "log.txt"
 
 
@@ -95,7 +93,7 @@ def is_power_of_two(n: int) -> bool:
     return (n & (n - 1) == 0) and n != 0
 
 
-def check_m_validity(m: int) -> None:
+def assert_m_validity(m: int) -> None:
     if not is_power_of_two(args.memory):
         raise AttributeError("Please enter a number that is a power of 2 for m")
     # TODO: should raise exception here if m is too low? Consult Eran
@@ -134,19 +132,25 @@ def process_packet(timestamp: float, quic_layer) -> None:
     if dcid is None:
         return
 
+    # Process dcid to binary hash
     dcid = dcid.replace(":", "")
     hashed_dcid = sha256(dcid.encode()).hexdigest()
     binary_hash = pad_binary_with_0(get_binary_from_hex(hashed_dcid), 256)  # 256 because hash result is 32 chars
+
+    # Extract the relevant information from the binary hash
     j, rest = binary_hash[0:b], binary_hash[b:]
     leftmost = get_leftmost_1_position(rest)
 
+    # Build PacketInformation from extracted information and add it to the relevant LFPM
     information = PacketInformation(timestamp, leftmost)
     LFPMs.add_packet_for_index(int(j, 2), information)
 
+    # If we want to verify the cardinality, add the dcid to the set of dcid's
     if args.verify:
         verify_set.add(dcid)
 
 
+# Function for the second thread to run
 def run_loop() -> None:
     if args.file is None:  # TODO: Fix logging problem. Switch to processes?
         for packet in capture.sniff_continuously():
@@ -154,9 +158,10 @@ def run_loop() -> None:
     else:
         for packet in capture:
             process_packet(packet.sniff_timestamp, packet["quic"])
-        print("Completed File Reading")
+        print("Completed File Reading") # signal when the loop finishes reading the file
 
 
+# Function to print strings to the screen and log them in the log_file
 def print_and_log(*values) -> None:
     print(*values)
 
@@ -164,24 +169,24 @@ def print_and_log(*values) -> None:
         log_file.write("\n")
         return
 
-    str_to_write: str = " ".join(list( map(lambda val: str(val), values) ))
+    str_to_write: str = " ".join(list( map(lambda val: str(val), values) )) # construct the thread to
     log_file.write(str_to_write + "\n")
 
 
-# TODO: small range correction, documentation, readme
+# TODO: documentation, readme
 
 
 if __name__ == "__main__":
-    # TODO: delete this
-    # file flag: -f ".\100 QUIC Connections.pcapng"
     args = parser.parse_args()
 
-    check_m_validity(args.memory)
+    assert_m_validity(args.memory)
 
+    # If the logs folder doesn't exist, create it
     if not os.path.exists("." + dir_sign + "logs"):
         os.makedirs("." + dir_sign + "logs")
         print("logs folder created at " + os.getcwd() + dir_sign + "logs")
 
+    # b will be the number of bits used to sort the dcid's into the different LFPMs
     b: int = int(log2(args.memory))
     if b > 128:
         raise AttributeError("Number of buckets is too large. You are using **WAY** too much memory")
@@ -190,6 +195,7 @@ if __name__ == "__main__":
     LFPMs = LFPMList(args.memory)
 
     start_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+
     if args.file is None:
         capture = pyshark.LiveCapture(display_filter="quic")
     else:
@@ -197,13 +203,12 @@ if __name__ == "__main__":
 
     log_file = open(args.log, mode="a")
     print_and_log("\nStarting estimator on time: " + start_time + "\n")
-    # event_log_file = open("." + dir_sign + "logs" + dir_sign + "event_log.txt", mode="a")
 
     # The daemon flag is set to terminate the thread when the program exits
     loop_thread = threading.Thread(target=run_loop, daemon=True)
     loop_thread.start()
 
-    verify_set: ThreadSafeSet = ThreadSafeSet()
+    verify_set: ThreadSafeSet = ThreadSafeSet()  # a data structure to verify the cardinality if needed
 
     start_message = "Running with arguments:\n" \
         + "\t" + "Memory Buckets (LFPMs): " + str(args.memory) + "\n" \
@@ -211,7 +216,8 @@ if __name__ == "__main__":
                    ) if args.file is not None else ("Live Capture (No Capture File)\n")) \
         + "\t" + "Log File: " + args.log + "\n" \
         + ("\t" + "Warning: there is currently a problem with logging from Live Capture\n" if not args.file else "") \
-        + "\t" + ("Verifying the real cardinality (warning: this increases processing times)\n" if args.verify else "") \
+        + ("\t" + "Verifying the real cardinality (warning: this increases processing times)\n" if args.verify else "") \
+        + ("\t" + "Using Linear Counting for small range correction\n" if args.c else "Not applying small range correction\n") \
         + "\n" \
         + "The estimator is running in the background and it takes your input for instructions.\n" \
         + "Instruction List:\n" \
@@ -222,29 +228,36 @@ if __name__ == "__main__":
     print(start_message)
 
     while True:
+        # The main loop
         user_input = input()
         curr_time = time.time()
+
         if user_input == "exit" or user_input == "quit" or user_input == "exit/quit":
+            # Kill the estimator
             end_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
             print_and_log("Stopping Estimator on time:", end_time)
             break
 
         elif user_input == "status":
+            # Print the LFPMs status
             print("Status of the LFPMs is:")
             print(LFPMs.status())
             log_file.write("Status of the LFPMs is:")
             log_file.write(LFPMs.status())
 
         elif user_input == "" or user_input == "estimate" or user_input == "cardinality":
+            # Estimate the cardinality with duration="infinity"
             src_used = [False]
             estimation = LFPMs.estimate_cardinality(time=curr_time, duration=None, m=args.memory, use_src=args.src, src_used=src_used)
+
             print_and_log("Cardinality estimation is:", estimation)
-            if src_used[0]:
+            if src_used[0]:  # if small range correction was applied, notify the user
                 print_and_log("\t(small range correction applied)")
-            if args.verify:
+            if args.verify:  # if the user chose to verify the cardinality, print the verified cardinality
                 print_and_log("Actual cardinality is:", verify_set.get_len()//2)
 
         else:
+            # Try to interoperate the input as a duration to estimate the cardinality for
             try:
                 input_duration = float(user_input)
             except ValueError:
@@ -254,9 +267,10 @@ if __name__ == "__main__":
 
             src_used = [False]
             estimation = LFPMs.estimate_cardinality(time=curr_time, duration=input_duration, m=args.memory, use_src=args.src, src_used=src_used)
+
             print_and_log("Current time is:", time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(curr_time)))
             print_and_log("\tand the cardinality estimation for duration", input_duration, "is:", estimation)
-            if src_used[0]:
+            if src_used[0]:  # if small range correction was applied, notify the user
                 print_and_log("\t(small range correction applied)")
-            if args.verify:
+            if args.verify:  # if the user chose to verify the cardinality, print the verified cardinality
                 print_and_log("\tThere is currently no support for a cardinality verification with specified duration")

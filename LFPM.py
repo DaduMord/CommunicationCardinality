@@ -25,10 +25,13 @@ class LFPM:  # List of Future Possible Maxima as described in the article by Cha
         return len(self._packets) == 0
 
     def add_packet(self, packet: PacketInformation) -> None:
+        # Add a packet according to the algorithm proposed in the article
         self._packets = list(filter(lambda info: info.leftmost > packet.leftmost, self._packets))
         self._packets.append(packet)
 
     def extract_highest_leftmost(self, time: float, duration: float) -> Optional[int]:
+        # Extract the highest number of leftmost 1 from the LFPM for the last <duration> seconds
+        # according to the rules proposed in the article
         filtered = list(filter(lambda info: float(info.time) >= (time - duration), self._packets))
         if len(filtered) == 0:
             return None
@@ -41,6 +44,8 @@ class LFPM:  # List of Future Possible Maxima as described in the article by Cha
         print()
 
     def status(self) -> str:
+        # Get the status of the LFPM as a printable string
+
         res = str(len(self._packets)) + " packets:"
         for packet in self._packets:
             res += str(packet)
@@ -70,6 +75,9 @@ class LFPMList:  # Thread safe list of LFPMs
 
     def small_range_correction(self, E: float, m: int) -> float:
         # Apply Linear Counting
+        # E is the current estimate
+        # m is the amount of LFPMs
+
         V = sum(lfpm.is_empty() for lfpm in self._LFPMs)
         if V == 0:
             return E
@@ -77,8 +85,13 @@ class LFPMList:  # Thread safe list of LFPMs
             return m*math.log2(m/V)
 
     def estimate_cardinality(self, time: float, duration: Optional[float], m: int, use_src: bool, src_used: [bool]) -> int:
-        # TODO: apply low-range correction according to hyperloglog article
-        # (HyperLogLog: the analysis of a near-optimal cardinality estimation algorithm)
+        # Estimate the cardinality according to the HyperLogLog algorithm
+        # time is the current time
+        # duration is the duration in which we want to estimate the cardinality
+        # m is the amount of LFPMs
+        # use_src specifies whether to use Small Range Correction
+        # src_used[0] is set if Small Range Correction has been applied
+
         self._LFPMs_lock.acquire()
         l_duration = 9999999999  # we are using 9999999999 as a dummy time duration. This means this script will only consider packets in the last 2286 years.
         if duration is not None:
@@ -111,6 +124,8 @@ class LFPMList:  # Thread safe list of LFPMs
         self._LFPMs_lock.release()
 
     def status(self) -> str:
+        # Get the status of the LFPMs as a printable string
+
         self._LFPMs_lock.acquire()
         res = ""
         for i, lfpm in enumerate(self._LFPMs):
@@ -122,12 +137,6 @@ class LFPMList:  # Thread safe list of LFPMs
 def alpha_m(m: int) -> float:  # Estimate alpha_m according to suggestion on the HyperLogLog article by
     # Flajolet, Philippe; Fusy, Éric; Gandouet, Olivier; Meunier, Frédéric (2007).
 
-    # if m == 2:
-    #     return 0.531
-    # elif m == 4:
-    #     return 0.532
-    # elif m == 8:
-    #     return 0.626
     if m == 16:
         return 0.673
     elif m == 32:
