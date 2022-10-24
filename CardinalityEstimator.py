@@ -68,7 +68,7 @@ parser.add_argument("-m",
 parser.add_argument("-v",
                     "--verify",
                     action="store_true",
-                    help="Print the actual cardinality to verify correctness.")
+                    help="Print the actual cardinality to verify error rate.")
 
 parser.add_argument("-f",
                     "--file",
@@ -85,7 +85,7 @@ parser.add_argument("-l",
 
 parser.add_argument("--src",
                     action="store_true",
-                    help="Set this to enable Small Range Correction with Linear Counting")
+                    help="Enable Small Range Correction with Linear Counting")
 
 
 def is_power_of_two(n: int) -> bool:
