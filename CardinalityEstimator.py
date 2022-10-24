@@ -83,8 +83,7 @@ parser.add_argument("-l",
                     help="Path to log file in which you would like to save your output. \
                          Defaults to <current_folder>\\logs\\log.txt")
 
-parser.add_argument("-c",
-                    "--src",
+parser.add_argument("--src",
                     action="store_true",
                     help="Set this to enable Small Range Correction with Linear Counting")
 
@@ -216,7 +215,7 @@ if __name__ == "__main__":
         + "\t" + "Log File: " + args.log + "\n" \
         + ("\t" + "Warning: there is currently a problem with logging from Live Capture\n" if not args.file else "") \
         + ("\t" + "Verifying the real cardinality (warning: this increases processing times)\n" if args.verify else "") \
-        + ("\t" + "Using Linear Counting for small range correction\n" if args.c else "Not applying small range correction\n") \
+        + ("\t" + "Using Linear Counting for small range correction\n" if args.src else "Not applying small range correction\n") \
         + "\n" \
         + "The estimator is running in the background and it takes your input for instructions.\n" \
         + "Instruction List:\n" \
