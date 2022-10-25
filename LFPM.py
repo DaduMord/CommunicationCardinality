@@ -82,7 +82,7 @@ class LFPMList:  # Thread safe list of LFPMs
         if V == 0:
             return E
         else:
-            return m*math.log2(m/V)
+            return m * (math.log2(m/V))
 
     def estimate_cardinality(self, time: float, duration: Optional[float], m: int, use_src: bool, src_used: [bool]) -> int:
         # Estimate the cardinality according to the HyperLogLog algorithm
