@@ -156,7 +156,7 @@ def run_loop() -> None:
     else:
         for packet in capture:
             process_packet(packet.sniff_timestamp, packet["quic"])
-        print("Completed File Reading") # signal when the loop finishes reading the file
+        print("Completed File Reading")  # signal when the loop finishes reading the file
 
 
 # Function to print strings to the screen and log them in the log_file
@@ -167,7 +167,7 @@ def print_and_log(*values) -> None:
         log_file.write("\n")
         return
 
-    str_to_write: str = " ".join(list( map(lambda val: str(val), values) )) # construct the thread to
+    str_to_write: str = " ".join(list( map(lambda val: str(val), values) ))  # construct the thread to
     log_file.write(str_to_write + "\n")
 
 
@@ -211,7 +211,7 @@ if __name__ == "__main__":
     start_message = "Running with arguments:\n" \
         + "\t" + "Memory Buckets (LFPMs): " + str(args.memory) + "\n" \
         + "\t" + (("Capturing from file: " + args.file + "\n\tPlease wait for the file to complete reading before exiting (for logging purposes)\n"
-                   ) if args.file is not None else ("Live Capture (No Capture File)\n")) \
+                   ) if args.file is not None else "Live Capture (No Capture File)\n") \
         + "\t" + "Log File: " + args.log + "\n" \
         + ("\t" + "Warning: there is currently a problem with logging from Live Capture\n" if not args.file else "") \
         + ("\t" + "Verifying the real cardinality (warning: this increases processing times)\n" if args.verify else "") \
