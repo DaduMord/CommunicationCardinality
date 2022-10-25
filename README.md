@@ -58,7 +58,7 @@ If you are using Live Capture, your actions will not be logged.
 
 ## References
 
-1. [Sliding HyperLogLog: Estimating Cardinality in a Data Stream over a Sliding Window]("https://hal.archives-ouvertes.fr/hal-00465313/document")
+1. [Sliding HyperLogLog: Estimating Cardinality in a Data Stream over a Sliding Window]("https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=5693443")
 by Yousra Chabchoub, Georges Hebrail; 2010.
 2. [HyperLogLog: the analysis of a near-optimal cardinality estimation algorithm](http://algo.inria.fr/flajolet/Publications/FlFuGaMe07.pdf)
 by Philippe Flajolet, Éric Fusy, Olivier Gandouet, Frédéric Meunier; 2007.
