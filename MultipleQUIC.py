@@ -5,7 +5,7 @@ import time
 
 
 def run_QUIC(conn_num: int = 1) -> None:
-    for _ in range(conn_num):
+    for _ in range(conn_num):  # Change this command to how you run your QUIC client
         os.system("cd C:\\Technion\\CommunicationCardinality\\aioquic & \
                   python examples/http3_client.py --ca-certs tests/pycacert.pem https://localhost:4433/10")
 
@@ -23,6 +23,7 @@ if __name__ == "__main__":
     # Number of connections is going to be thread_num * conns_per_thread.
     # Increase thread_num with care and be careful not to exceed your machine capabilities.
     # A thread_num of 10-15 should be a safe choice.
+    # Make sure to have an active server before running the script.
 
     thread_num = 10
     conns_per_thread = 10
