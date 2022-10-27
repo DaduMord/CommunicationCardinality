@@ -62,3 +62,95 @@ If you are using Live Capture, your actions will not be logged.
 by Yousra Chabchoub, Georges Hebrail; 2010.
 2. [HyperLogLog: the analysis of a near-optimal cardinality estimation algorithm](http://algo.inria.fr/flajolet/Publications/FlFuGaMe07.pdf)
 by Philippe Flajolet, Éric Fusy, Olivier Gandouet, Frédéric Meunier; 2007.
+
+***
+
+## Examples
+
+### Running with 64 LFPMs, live capture
+Run the command:
+```commandline
+python CardinalityEstimator.py -m 64
+```
+After manually running 200 QUIC connections, a blank input outputs:
+```commandline
+Waiting for input...
+
+Cardinality estimation is: 209
+```
+After manually running 100 more QUIC connections, a blank input outputs:
+```commandline
+Waiting for input...
+
+Cardinality estimation is: 284
+```
+Running `50` (estimating cardinality for the last 50 seconds) outputs:
+```commandline
+Waiting for input...
+50
+Current time is: 2022-10-27 12:40:35
+        and the cardinality estimation for duration 50.0 is: 139
+```
+And running `status` outputs:
+```commandline
+Waiting for input...
+status
+0: 2 packets:(3, 1666898441.981916000)(0, 1666898482.753045000)
+1: 1 packets:(3, 1666898430.515285000)
+2: 3 packets:(4, 1666898273.673436000)(2, 1666898422.669759000)(1, 1666898487.949976000)
+3: 3 packets:(3, 1666898239.312564000)(1, 1666898393.950083000)(0, 1666898488.150866000)
+.
+.
+.
+```
+
+### Running with 256 LFPMs, capturing from file [1000 QUIC connections](./1000 QUIC Connections.pcapng) and with verification
+The file is a Wireshark capture of 1000 QUIC connections and is available in the Project repository.
+
+Run the command:
+```commandline
+python CardinalityEstimator.py -m 256 -v -f "./1000 QUIC connections.pcapng"
+```
+Inserting a blank input while the estimator reads the file outputs:
+```commandline
+Waiting for input...
+
+Cardinality estimation is: 738
+Actual cardinality is: 750
+```
+After waiting for the estimator to finish reading the file, a blank input outputs:
+```commandline
+Completed file reading
+Waiting for input...
+
+Cardinality estimation is: 1001
+Actual cardinality is: 1000
+```
+
+### Running with 32 LFPMs, live capture and with verification
+Run the command:
+```commandline
+python CardinalityEstimator.py -m 32 -v
+```
+While manually running 200 QUIC connections, a blank input outputs:
+```commandline
+Waiting for input...
+
+Cardinality estimation is: 128
+Actual cardinality is: 136
+```
+After waiting for the 200 connections to finish, a blank input outputs:
+```commandline
+Waiting for input...
+
+Cardinality estimation is: 185
+Actual cardinality is: 200
+```
+And Running `50` (estimating cardinality for the last 50 seconds) outputs:
+```commandline
+Waiting for input...
+50
+Current time is: 2022-10-27 12:59:02
+        and the cardinality estimation for duration 50.0 seconds is: 90
+        Actual cardinality is: 94
+```
