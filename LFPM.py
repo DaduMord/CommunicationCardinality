@@ -52,15 +52,17 @@ class LFPM:  # List of Future Possible Maxima as described in the article by Cha
         return res
 
 
-class LFPMList:  # Thread safe list of LFPMs
+class LFPMList:  # List of LFPMs
+    # In comments are the previous version of the LFPMList which was thread-safe.
+
     _size: int
     _LFPMs: list[LFPM]
-    _LFPMs_lock: threading.Lock
+    # _LFPMs_lock: threading.Lock
 
     def __init__(self, size: int):
         self._size = size
         self._LFPMs = [LFPM() for _ in range(self._size)]
-        self._LFPMs_lock = threading.Lock()
+        # self._LFPMs_lock = threading.Lock()
 
     def get_size(self) -> int:
         return self._size
@@ -69,9 +71,9 @@ class LFPMList:  # Thread safe list of LFPMs
         if index >= self._size:
             raise IndexError("LFPMs list received illegal index")
 
-        self._LFPMs_lock.acquire()
+        # self._LFPMs_lock.acquire()
         self._LFPMs[index].add_packet(packet=packet)
-        self._LFPMs_lock.release()
+        # self._LFPMs_lock.release()
 
     def small_range_correction(self, E: float, m: int) -> float:
         # Apply Linear Counting
@@ -92,7 +94,7 @@ class LFPMList:  # Thread safe list of LFPMs
         # use_src specifies whether to use Small Range Correction
         # src_used[0] is set if Small Range Correction has been applied
 
-        self._LFPMs_lock.acquire()
+        # self._LFPMs_lock.acquire()
         l_duration = 9999999999  # we are using 9999999999 as a dummy time duration. This means this script will only consider packets in the last 2286 years.
         if duration is not None:
             l_duration = duration
@@ -103,7 +105,7 @@ class LFPMList:  # Thread safe list of LFPMs
             if rightmost is not None:
                 temp += 2 ** (-1 * rightmost)
 
-        self._LFPMs_lock.release()
+        # self._LFPMs_lock.release()
 
         if temp == 0.0:
             return 0
@@ -117,20 +119,20 @@ class LFPMList:  # Thread safe list of LFPMs
         return round(E)
 
     def print_status(self) -> None:
-        self._LFPMs_lock.acquire()
+        # self._LFPMs_lock.acquire()
         for i, lfpm in enumerate(self._LFPMs):
             print(str(i) + ": ", end='')
             print(lfpm.status())
-        self._LFPMs_lock.release()
+        # self._LFPMs_lock.release()
 
     def status(self) -> str:
         # Get the status of the LFPMs as a printable string
 
-        self._LFPMs_lock.acquire()
+        # self._LFPMs_lock.acquire()
         res = ""
         for i, lfpm in enumerate(self._LFPMs):
             res += str(i) + ": " + lfpm.status() + "\n"
-        self._LFPMs_lock.release()
+        # self._LFPMs_lock.release()
         return res
 
 
