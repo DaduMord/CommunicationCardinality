@@ -28,29 +28,24 @@ def get_default_log() -> str:
     return "." + dir_sign + "logs" + dir_sign + "log.txt"
 
 
-class ThreadSafeSet:
-    _data: set[str]
-    _data_lock: threading.Lock
+class VerifyDict:
+    _data: dict[str, float]
+    # _data_lock: threading.Lock
 
     def __init__(self):
-        self._data = set()
-        self._data_lock = threading.Lock()
+        self._data: dict[str, float] = {}
 
-    def add(self, value: str):
-        self._data_lock.acquire()
-        self._data.add(value)
-        self._data_lock.release()
+    def add(self, dcid: str, timestamp: float):
+        self._data[dcid] = timestamp
 
-    def remove(self, value: str):
-        self._data_lock.acquire()
-        self._data.remove(value)
-        self._data_lock.release()
+    def remove(self, dcid: str):
+        self._data.pop(dcid)
 
-    def get_len(self):
-        self._data_lock.acquire()
-        ret = len(self._data)
-        self._data_lock.release()
-        return ret
+    def get_len(self, duration: float = None, curr_time: float = None) -> int:
+        if duration is None or curr_time is None:
+            return len(self._data)
+        else:
+            return len(list(filter(lambda value: curr_time - duration <= value, self._data.values())))
 
 
 parser = argparse.ArgumentParser(description="A program to estimate QUIC connection cardinality using sliding window \
@@ -139,13 +134,17 @@ def process_packet(timestamp: float, quic_layer) -> None:
     j, rest = binary_hash[0:b], binary_hash[b:]
     leftmost = get_leftmost_1_position(rest)
 
+    data_lock.acquire()
+
     # Build PacketInformation from extracted information and add it to the relevant LFPM
     information = PacketInformation(timestamp, leftmost)
     LFPMs.add_packet_for_index(int(j, 2), information)
 
     # If we want to verify the cardinality, add the dcid to the set of dcid's
     if args.verify:
-        verify_set.add(dcid)
+        verify_dict.add(dcid=dcid, timestamp=float(timestamp))
+
+    data_lock.release()
 
 
 # Function for the second thread to run
@@ -156,7 +155,8 @@ def run_loop() -> None:
     else:
         for packet in capture:
             process_packet(packet.sniff_timestamp, packet["quic"])
-        print("Completed File Reading")  # signal when the loop finishes reading the file
+        print("Completed file reading")  # signal when the loop finishes reading the file
+        print("Waiting for input...")
 
 
 # Function to print strings to the screen and log them in the log_file
@@ -167,11 +167,8 @@ def print_and_log(*values) -> None:
         log_file.write("\n")
         return
 
-    str_to_write: str = " ".join(list( map(lambda val: str(val), values) ))  # construct the thread to
+    str_to_write: str = " ".join(list( map(lambda val: str(val), values) ))  # construct the thread to write to log
     log_file.write(str_to_write + "\n")
-
-
-# TODO: readme
 
 
 if __name__ == "__main__":
@@ -206,7 +203,8 @@ if __name__ == "__main__":
     loop_thread = threading.Thread(target=run_loop, daemon=True)
     loop_thread.start()
 
-    verify_set: ThreadSafeSet = ThreadSafeSet()  # a data structure to verify the cardinality if needed
+    data_lock = threading.Lock()
+    verify_dict: VerifyDict = VerifyDict()  # a data structure to verify the cardinality if needed
 
     start_message = "Running with arguments:\n" \
         + "\t" + "Memory Buckets (LFPMs): " + str(args.memory) + "\n" \
@@ -227,8 +225,11 @@ if __name__ == "__main__":
 
     while True:
         # The main loop
+        print("Waiting for input...")
         user_input = input()
         curr_time = time.time()
+
+        data_lock.acquire()
 
         if user_input == "exit" or user_input == "quit" or user_input == "exit/quit":
             # Kill the estimator
@@ -252,7 +253,7 @@ if __name__ == "__main__":
             if src_used[0]:  # if small range correction was applied, notify the user
                 print_and_log("\t(small range correction applied)")
             if args.verify:  # if the user chose to verify the cardinality, print the verified cardinality
-                print_and_log("Actual cardinality is:", verify_set.get_len()//2)
+                print_and_log("Actual cardinality is:", verify_dict.get_len() // 2)
 
         else:
             # Try to interoperate the input as a duration to estimate the cardinality for
@@ -267,8 +268,10 @@ if __name__ == "__main__":
             estimation = LFPMs.estimate_cardinality(time=curr_time, duration=input_duration, m=args.memory, use_src=args.src, src_used=src_used)
 
             print_and_log("Current time is:", time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(curr_time)))
-            print_and_log("\tand the cardinality estimation for duration", input_duration, "is:", estimation)
+            print_and_log("\tand the cardinality estimation for duration", input_duration, "seconds is:", estimation)
             if src_used[0]:  # if small range correction was applied, notify the user
                 print_and_log("\t(small range correction applied)")
             if args.verify:  # if the user chose to verify the cardinality, print the verified cardinality
-                print_and_log("\tThere is currently no support for a cardinality verification with specified duration")
+                print_and_log("\tActual cardinality is:", verify_dict.get_len(duration=input_duration, curr_time=curr_time) // 2)
+
+        data_lock.release()
