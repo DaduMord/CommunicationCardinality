@@ -105,7 +105,7 @@ status
 ```
 
 ### Running with 256 LFPMs, capturing from file 1000 QUIC connections and with verification
-The file is a Wireshark capture of [1000 QUIC connections]((./1000 QUIC Connections.pcapng)) and is available in the project repository.
+The file is a Wireshark capture of [1000 QUIC connections](./1000%20QUIC%20Connections.pcapng) and is available in the project repository.
 
 Run the command:
 ```commandline
